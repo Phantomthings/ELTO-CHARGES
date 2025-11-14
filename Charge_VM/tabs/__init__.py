@@ -1,4 +1,5 @@
 from . import (
+    tab0_overview,
     tab1_general,
     tab2_comparaison,
     tab3_details_pdc,
@@ -13,6 +14,7 @@ from . import (
 )
 
 __all__ = [
+    "tab0_overview",
     "tab1_general",
     "tab2_comparaison",
     "tab3_details_pdc",
