@@ -22,6 +22,7 @@ from tabs import (
     tab10_alertes,
     tab11_evolution,
 )
+import dashboard_home
 
 # COULEURS 
 COLORS_PDC = ["#FF7F0E", "#FF0000", "#2CA02C", "#D62728", "#9467BD", "#8C564B"]
@@ -637,6 +638,11 @@ st.session_state.d2 = d2
 
 context.__dict__.clear()
 context.__dict__.update({k: v for k, v in locals().items() if k != "context"})
+
+dashboard_home.render_dashboard(context)
+
+st.markdown("---")
+st.markdown("## Analyses Détaillées")
 
 # TABS
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
