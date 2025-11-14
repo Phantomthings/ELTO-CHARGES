@@ -28,12 +28,12 @@ with col_kpi1:
 
     st.markdown("### ⚠️ Transactions suspectes")
     color = "#dc3545" if nb_suspicious > 5 else "#ffc107" if nb_suspicious > 0 else "#28a745"
-    st.markdown(f"""
-    <div style='padding: 20px; background: {color}; border-radius: 10px; text-align: center;'>
-        <h1 style='color: white; margin: 0; font-size: 2.5em;'>{nb_suspicious}</h1>
-        <p style='color: white; margin: 10px 0 0 0; font-size: 1em;'>Transactions <1 kWh</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f'''
+<div style='padding: 20px; background: {color}; border-radius: 10px; text-align: center;'>
+    <h1 style='color: white; margin: 0; font-size: 2.5em;'>{nb_suspicious}</h1>
+    <p style='color: white; margin: 10px 0 0 0; font-size: 1em;'>Transactions <1 kWh</p>
+</div>
+''', unsafe_allow_html=True)
 
 with col_kpi2:
     multi_attempts = tables.get("multi_attempts_hour", pd.DataFrame())
@@ -52,12 +52,12 @@ with col_kpi2:
 
     st.markdown("### ⚠️ Analyse tentatives multiples")
     color = "#dc3545" if nb_multi_attempts > 5 else "#ffc107" if nb_multi_attempts > 0 else "#28a745"
-    st.markdown(f"""
-    <div style='padding: 20px; background: {color}; border-radius: 10px; text-align: center;'>
-        <h1 style='color: white; margin: 0; font-size: 2.5em;'>{nb_multi_attempts}</h1>
-        <p style='color: white; margin: 10px 0 0 0; font-size: 1em;'>Utilisateurs multiples tentatives</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f'''
+<div style='padding: 20px; background: {color}; border-radius: 10px; text-align: center;'>
+    <h1 style='color: white; margin: 0; font-size: 2.5em;'>{nb_multi_attempts}</h1>
+    <p style='color: white; margin: 10px 0 0 0; font-size: 1em;'>Utilisateurs multiples tentatives</p>
+</div>
+''', unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -100,19 +100,19 @@ try:
         st.markdown("### Alertes Actives")
         if nb_alertes_actives > 0:
             alert_color = "#dc3545" if nb_alertes_actives > 10 else "#ffc107"
-            st.markdown(f\"\"\"
-            <div style='padding: 30px; background: {alert_color}; border-radius: 10px; text-align: center;'>
-                <h1 style='color: white; margin: 0; font-size: 3em;'>{nb_alertes_actives}</h1>
-                <p style='color: white; margin: 10px 0 0 0; font-size: 1.2em;'>Alertes détectées</p>
-            </div>
-            \"\"\", unsafe_allow_html=True)
+            st.markdown(f'''
+<div style='padding: 30px; background: {alert_color}; border-radius: 10px; text-align: center;'>
+    <h1 style='color: white; margin: 0; font-size: 3em;'>{nb_alertes_actives}</h1>
+    <p style='color: white; margin: 10px 0 0 0; font-size: 1.2em;'>Alertes détectées</p>
+</div>
+''', unsafe_allow_html=True)
         else:
-            st.markdown(\"\"\"
-            <div style='padding: 30px; background: #28a745; border-radius: 10px; text-align: center;'>
-                <h1 style='color: white; margin: 0; font-size: 3em;'>0</h1>
-                <p style='color: white; margin: 10px 0 0 0; font-size: 1.2em;'>Aucune alerte</p>
-            </div>
-            \"\"\", unsafe_allow_html=True)
+            st.markdown('''
+<div style='padding: 30px; background: #28a745; border-radius: 10px; text-align: center;'>
+    <h1 style='color: white; margin: 0; font-size: 3em;'>0</h1>
+    <p style='color: white; margin: 10px 0 0 0; font-size: 1.2em;'>Aucune alerte</p>
+</div>
+''', unsafe_allow_html=True)
 
     with col_alert2:
         st.markdown("### Top 5 Sites en Alerte")
