@@ -10,6 +10,7 @@ import datetime
 import calendar
 from tabs.context import get_context
 from tabs import (
+    tab0_overview,
     tab1_general,
     tab2_comparaison,
     tab3_details_pdc,
@@ -645,7 +646,8 @@ st.markdown("---")
 st.markdown("## Analyses Détaillées")
 
 # TABS
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
+tab0, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
+    "📊 Vue d'ensemble",
     "📋 Générale",
     "🏢 Comparaison par site (Activité)",
     "🔌 Détails Site (par PDC)",
@@ -663,7 +665,11 @@ stats_all = tables.get("stats_global_all", pd.DataFrame())
 stats_ok  = tables.get("stats_global_ok",  pd.DataFrame())
 context.__dict__.update({"stats_all": stats_all, "stats_ok": stats_ok})
 
-# Tab 1 
+# Tab 0
+with tab0:
+    tab0_overview.render()
+
+# Tab 1
 with tab1:
     tab1_general.render()
 with tab2:
