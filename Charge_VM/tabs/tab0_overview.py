@@ -10,6 +10,57 @@ from tabs.context import get_context
 TAB_CODE = """
 st.markdown("### 📊 Vue d'ensemble des alertes et performances")
 
+# Indicateurs pour transactions suspectes et tentatives multiples
+col_kpi1, col_kpi2 = st.columns(2)
+
+with col_kpi1:
+    suspicious = tables.get("suspicious_under_1kwh", pd.DataFrame())
+    nb_suspicious = 0
+    if not suspicious.empty:
+        df_s_temp = suspicious.copy()
+        if "Datetime start" in df_s_temp.columns:
+            ds = pd.to_datetime(df_s_temp["Datetime start"], errors="coerce")
+            mask = ds.ge(pd.Timestamp(d1)) & ds.lt(pd.Timestamp(d2) + pd.Timedelta(days=1))
+            df_s_temp = df_s_temp[mask]
+        if site_sel and "Site" in df_s_temp.columns:
+            df_s_temp = df_s_temp[df_s_temp["Site"].isin(site_sel)]
+        nb_suspicious = len(df_s_temp)
+
+    st.markdown("### ⚠️ Transactions suspectes")
+    color = "#dc3545" if nb_suspicious > 5 else "#ffc107" if nb_suspicious > 0 else "#28a745"
+    st.markdown(f"""
+    <div style='padding: 20px; background: {color}; border-radius: 10px; text-align: center;'>
+        <h1 style='color: white; margin: 0; font-size: 2.5em;'>{nb_suspicious}</h1>
+        <p style='color: white; margin: 10px 0 0 0; font-size: 1em;'>Transactions <1 kWh</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col_kpi2:
+    multi_attempts = tables.get("multi_attempts_hour", pd.DataFrame())
+    nb_multi_attempts = 0
+    if not multi_attempts.empty:
+        dfm_temp = multi_attempts.copy()
+        if "Date_heure" in dfm_temp.columns:
+            dfm_temp["Date_heure"] = pd.to_datetime(dfm_temp["Date_heure"], errors="coerce")
+            d1_ts = pd.Timestamp(d1)
+            d2_ts = pd.Timestamp(d2) + pd.Timedelta(days=1)
+            mask = dfm_temp["Date_heure"].between(d1_ts, d2_ts)
+            dfm_temp = dfm_temp[mask]
+        if site_sel and "Site" in dfm_temp.columns:
+            dfm_temp = dfm_temp[dfm_temp["Site"].isin(site_sel)]
+        nb_multi_attempts = len(dfm_temp)
+
+    st.markdown("### ⚠️ Analyse tentatives multiples")
+    color = "#dc3545" if nb_multi_attempts > 5 else "#ffc107" if nb_multi_attempts > 0 else "#28a745"
+    st.markdown(f"""
+    <div style='padding: 20px; background: {color}; border-radius: 10px; text-align: center;'>
+        <h1 style='color: white; margin: 0; font-size: 2.5em;'>{nb_multi_attempts}</h1>
+        <p style='color: white; margin: 10px 0 0 0; font-size: 1em;'>Utilisateurs multiples tentatives</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("---")
+
 try:
     engine = create_engine("mysql+pymysql://AdminNidec:u6Ehe987XBSXxa4@141.94.31.144:3306/indicator")
 
@@ -66,7 +117,7 @@ try:
     with col_alert2:
         st.markdown("### Top 5 Sites en Alerte")
         if not df_alertes.empty:
-            top_sites_alertes = df_alertes.groupby("Site").size().sort_values(ascending=False).head(5)
+            top_sites_alertes = df_alertes.groupby("Site").size().sort_values(ascending=True).head(5)
 
             fig_sites = go.Figure(go.Bar(
                 x=top_sites_alertes.values,
@@ -99,6 +150,10 @@ try:
         st.markdown("### Dernières Alertes Critiques")
 
         df_display = df_alertes.head(10).copy()
+
+        # Supprimer les lignes où toutes les colonnes importantes sont vides/null
+        df_display = df_display.dropna(how='all', subset=['Site', 'PDC', 'type_erreur', 'detection'])
+
         df_display = df_display.rename(columns={
             "type_erreur": "Type",
             "detection": "Détection",
@@ -113,6 +168,9 @@ try:
             display_cols.append("EVI")
         if "DS Code" in df_display.columns:
             display_cols.append("DS Code")
+
+        # Ne garder que les colonnes qui existent et ont des données
+        display_cols = [col for col in display_cols if col in df_display.columns]
 
         st.dataframe(
             df_display[display_cols],
@@ -136,24 +194,27 @@ by_site_kpi = (
 if not by_site_kpi.empty:
     by_site_kpi["nok"] = by_site_kpi["total"] - by_site_kpi["ok"]
     by_site_kpi["taux_ok"] = (by_site_kpi["ok"] / by_site_kpi["total"] * 100).round(1)
-    by_site_kpi = by_site_kpi.sort_values("nok", ascending=False).head(10)
+
+    # Créer deux DataFrames : un trié par taux de réussite, un par échecs
+    by_site_success = by_site_kpi.sort_values("taux_ok", ascending=True).head(10)
+    by_site_fails = by_site_kpi.sort_values("nok", ascending=True).head(10)
 
     col_chart1, col_chart2 = st.columns(2)
 
     with col_chart1:
         st.markdown("### Top 10 Sites - Taux de Réussite")
         fig_success = go.Figure(go.Bar(
-            x=by_site_kpi["taux_ok"],
-            y=by_site_kpi[SITE_COL],
+            x=by_site_success["taux_ok"],
+            y=by_site_success[SITE_COL],
             orientation='h',
             marker=dict(
-                color=by_site_kpi["taux_ok"],
+                color=by_site_success["taux_ok"],
                 colorscale='RdYlGn',
                 showscale=False,
                 cmin=0,
                 cmax=100
             ),
-            text=by_site_kpi["taux_ok"].apply(lambda x: f"{x:.1f}%"),
+            text=by_site_success["taux_ok"].apply(lambda x: f"{x:.1f}%"),
             textposition='outside'
         ))
 
@@ -170,15 +231,15 @@ if not by_site_kpi.empty:
     with col_chart2:
         st.markdown("### Top 10 Sites - Nombre d'Échecs")
         fig_fails = go.Figure(go.Bar(
-            x=by_site_kpi["nok"],
-            y=by_site_kpi[SITE_COL],
+            x=by_site_fails["nok"],
+            y=by_site_fails[SITE_COL],
             orientation='h',
             marker=dict(
-                color=by_site_kpi["nok"],
+                color=by_site_fails["nok"],
                 colorscale='Reds',
                 showscale=False
             ),
-            text=by_site_kpi["nok"],
+            text=by_site_fails["nok"],
             textposition='outside'
         ))
 
