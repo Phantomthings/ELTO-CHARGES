@@ -80,6 +80,20 @@ try:
     \"\"\"
 
     df_alertes = pd.read_sql(query_alertes, con=engine)
+
+    # Requête pour les défauts en cours (date_fin IS NULL)
+    query_defauts_actifs = \"\"\"
+        SELECT
+            site,
+            date_debut,
+            defaut,
+            eqp
+        FROM kpi_defauts_log
+        WHERE date_fin IS NULL
+        ORDER BY date_debut DESC
+    \"\"\"
+
+    df_defauts_actifs = pd.read_sql(query_defauts_actifs, con=engine)
     engine.dispose()
 
     if not df_alertes.empty:
@@ -143,6 +157,96 @@ try:
             st.plotly_chart(fig_sites, use_container_width=True)
         else:
             st.info("Aucun site en alerte")
+
+    st.markdown("---")
+
+    # Section Défauts Actifs
+    if not df_defauts_actifs.empty:
+        df_defauts_actifs["date_debut"] = pd.to_datetime(df_defauts_actifs["date_debut"], errors="coerce")
+
+        # Filtrer par site si nécessaire
+        if site_sel:
+            df_defauts_actifs = df_defauts_actifs[df_defauts_actifs["site"].isin(site_sel)]
+
+    nb_defauts_actifs = len(df_defauts_actifs) if not df_defauts_actifs.empty else 0
+
+    col_defaut1, col_defaut2 = st.columns(2)
+
+    with col_defaut1:
+        st.markdown("### 🔧 Défauts Actifs")
+        if nb_defauts_actifs > 0:
+            defaut_color = "#dc3545" if nb_defauts_actifs > 5 else "#ffc107"
+            st.markdown(f'''
+<div style='padding: 30px; background: {defaut_color}; border-radius: 10px; text-align: center;'>
+    <h1 style='color: white; margin: 0; font-size: 3em;'>{nb_defauts_actifs}</h1>
+    <p style='color: white; margin: 10px 0 0 0; font-size: 1.2em;'>Défauts en cours</p>
+</div>
+''', unsafe_allow_html=True)
+        else:
+            st.markdown('''
+<div style='padding: 30px; background: #28a745; border-radius: 10px; text-align: center;'>
+    <h1 style='color: white; margin: 0; font-size: 3em;'>0</h1>
+    <p style='color: white; margin: 10px 0 0 0; font-size: 1.2em;'>Aucun défaut actif</p>
+</div>
+''', unsafe_allow_html=True)
+
+    with col_defaut2:
+        st.markdown("### Top 5 Sites avec Défauts")
+        if not df_defauts_actifs.empty:
+            top_sites_defauts = df_defauts_actifs.groupby("site").size().sort_values(ascending=True).head(5)
+
+            fig_sites_defauts = go.Figure(go.Bar(
+                x=top_sites_defauts.values,
+                y=top_sites_defauts.index,
+                orientation='h',
+                marker=dict(
+                    color=top_sites_defauts.values,
+                    colorscale='Reds',
+                    showscale=False
+                ),
+                text=top_sites_defauts.values,
+                textposition='outside'
+            ))
+
+            fig_sites_defauts.update_layout(
+                height=300,
+                margin=dict(l=0, r=0, t=10, b=0),
+                xaxis_title="Nombre de défauts",
+                yaxis_title="",
+                showlegend=False
+            )
+
+            st.plotly_chart(fig_sites_defauts, use_container_width=True)
+        else:
+            st.info("Aucun site avec défaut actif")
+
+    st.markdown("---")
+
+    # Tableau des défauts actifs
+    if not df_defauts_actifs.empty:
+        st.markdown("### 🔧 Derniers Défauts Actifs")
+
+        df_defauts_display = df_defauts_actifs.head(15).copy()
+
+        # Calculer "Depuis" (nombre de jours depuis date_debut)
+        now = pd.Timestamp.now()
+        df_defauts_display["Depuis (jours)"] = (now - df_defauts_display["date_debut"]).dt.days
+
+        df_defauts_display = df_defauts_display.rename(columns={
+            "site": "Site",
+            "date_debut": "Date début",
+            "defaut": "Défaut",
+            "eqp": "Equipement"
+        })
+
+        display_cols = ["Site", "Date début", "Depuis (jours)", "Défaut", "Equipement"]
+
+        st.dataframe(
+            df_defauts_display[display_cols],
+            use_container_width=True,
+            hide_index=True,
+            height=400
+        )
 
     st.markdown("---")
 

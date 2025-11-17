@@ -11,6 +11,7 @@ from . import (
     tab9_erreur_specifique,
     tab10_alertes,
     tab11_evolution,
+    tab12_defauts_historique,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "tab9_erreur_specifique",
     "tab10_alertes",
     "tab11_evolution",
+    "tab12_defauts_historique",
 ]
