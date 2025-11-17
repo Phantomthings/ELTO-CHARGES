@@ -96,6 +96,54 @@ try:
     df_defauts_actifs = pd.read_sql(query_defauts_actifs, con=engine)
     engine.dispose()
 
+    # Section Défauts Actifs (déplacée en haut)
+    if not df_defauts_actifs.empty:
+        df_defauts_actifs["date_debut"] = pd.to_datetime(df_defauts_actifs["date_debut"], errors="coerce")
+
+        # Filtrer par site si nécessaire
+        if site_sel:
+            df_defauts_actifs = df_defauts_actifs[df_defauts_actifs["site"].isin(site_sel)]
+
+    nb_defauts_actifs = len(df_defauts_actifs) if not df_defauts_actifs.empty else 0
+
+    st.markdown("### 🔧 Défauts Actifs")
+
+    if nb_defauts_actifs > 0:
+        # Afficher des cards détaillées pour chaque défaut
+        now = pd.Timestamp.now()
+
+        # Limiter à 10 défauts pour ne pas surcharger l'affichage
+        df_defauts_display = df_defauts_actifs.head(10).copy()
+        df_defauts_display["Depuis (jours)"] = (now - df_defauts_display["date_debut"]).dt.days
+
+        # Afficher les cards en colonnes (3 par ligne)
+        num_cols = 3
+        for i in range(0, len(df_defauts_display), num_cols):
+            cols = st.columns(num_cols)
+            for j, col in enumerate(cols):
+                idx = i + j
+                if idx < len(df_defauts_display):
+                    row = df_defauts_display.iloc[idx]
+                    with col:
+                        defaut_color = "#dc3545" if row["Depuis (jours)"] > 7 else "#ffc107"
+                        st.markdown(f'''
+<div style='padding: 15px; background: {defaut_color}; border-radius: 10px; margin-bottom: 10px;'>
+    <p style='color: white; margin: 0; font-weight: bold; font-size: 1.1em;'>🏢 {row["site"]}</p>
+    <p style='color: white; margin: 5px 0; font-size: 0.9em;'>⚠️ {row["defaut"]}</p>
+    <p style='color: white; margin: 5px 0; font-size: 0.9em;'>🔧 {row["eqp"]}</p>
+    <p style='color: white; margin: 5px 0 0 0; font-size: 0.8em; font-style: italic;'>Depuis {row["Depuis (jours)"]} jours</p>
+</div>
+''', unsafe_allow_html=True)
+    else:
+        st.markdown('''
+<div style='padding: 30px; background: #28a745; border-radius: 10px; text-align: center;'>
+    <h1 style='color: white; margin: 0; font-size: 3em;'>0</h1>
+    <p style='color: white; margin: 10px 0 0 0; font-size: 1.2em;'>Aucun défaut actif</p>
+</div>
+''', unsafe_allow_html=True)
+
+    st.markdown("---")
+
     if not df_alertes.empty:
         df_alertes["detection"] = pd.to_datetime(df_alertes["detection"], errors="coerce")
 
@@ -158,130 +206,6 @@ try:
         else:
             st.info("Aucun site en alerte")
 
-    st.markdown("---")
-
-    # Section Défauts Actifs
-    if not df_defauts_actifs.empty:
-        df_defauts_actifs["date_debut"] = pd.to_datetime(df_defauts_actifs["date_debut"], errors="coerce")
-
-        # Filtrer par site si nécessaire
-        if site_sel:
-            df_defauts_actifs = df_defauts_actifs[df_defauts_actifs["site"].isin(site_sel)]
-
-    nb_defauts_actifs = len(df_defauts_actifs) if not df_defauts_actifs.empty else 0
-
-    col_defaut1, col_defaut2 = st.columns(2)
-
-    with col_defaut1:
-        st.markdown("### 🔧 Défauts Actifs")
-        if nb_defauts_actifs > 0:
-            defaut_color = "#dc3545" if nb_defauts_actifs > 5 else "#ffc107"
-            st.markdown(f'''
-<div style='padding: 30px; background: {defaut_color}; border-radius: 10px; text-align: center;'>
-    <h1 style='color: white; margin: 0; font-size: 3em;'>{nb_defauts_actifs}</h1>
-    <p style='color: white; margin: 10px 0 0 0; font-size: 1.2em;'>Défauts en cours</p>
-</div>
-''', unsafe_allow_html=True)
-        else:
-            st.markdown('''
-<div style='padding: 30px; background: #28a745; border-radius: 10px; text-align: center;'>
-    <h1 style='color: white; margin: 0; font-size: 3em;'>0</h1>
-    <p style='color: white; margin: 10px 0 0 0; font-size: 1.2em;'>Aucun défaut actif</p>
-</div>
-''', unsafe_allow_html=True)
-
-    with col_defaut2:
-        st.markdown("### Top 5 Sites avec Défauts")
-        if not df_defauts_actifs.empty:
-            top_sites_defauts = df_defauts_actifs.groupby("site").size().sort_values(ascending=True).head(5)
-
-            fig_sites_defauts = go.Figure(go.Bar(
-                x=top_sites_defauts.values,
-                y=top_sites_defauts.index,
-                orientation='h',
-                marker=dict(
-                    color=top_sites_defauts.values,
-                    colorscale='Reds',
-                    showscale=False
-                ),
-                text=top_sites_defauts.values,
-                textposition='outside'
-            ))
-
-            fig_sites_defauts.update_layout(
-                height=300,
-                margin=dict(l=0, r=0, t=10, b=0),
-                xaxis_title="Nombre de défauts",
-                yaxis_title="",
-                showlegend=False
-            )
-
-            st.plotly_chart(fig_sites_defauts, use_container_width=True)
-        else:
-            st.info("Aucun site avec défaut actif")
-
-    st.markdown("---")
-
-    # Tableau des défauts actifs
-    if not df_defauts_actifs.empty:
-        st.markdown("### 🔧 Derniers Défauts Actifs")
-
-        df_defauts_display = df_defauts_actifs.head(15).copy()
-
-        # Calculer "Depuis" (nombre de jours depuis date_debut)
-        now = pd.Timestamp.now()
-        df_defauts_display["Depuis (jours)"] = (now - df_defauts_display["date_debut"]).dt.days
-
-        df_defauts_display = df_defauts_display.rename(columns={
-            "site": "Site",
-            "date_debut": "Date début",
-            "defaut": "Défaut",
-            "eqp": "Equipement"
-        })
-
-        display_cols = ["Site", "Date début", "Depuis (jours)", "Défaut", "Equipement"]
-
-        st.dataframe(
-            df_defauts_display[display_cols],
-            use_container_width=True,
-            hide_index=True,
-            height=400
-        )
-
-    st.markdown("---")
-
-    if not df_alertes.empty:
-        st.markdown("### Dernières Alertes Critiques")
-
-        df_display = df_alertes.head(10).copy()
-
-        # Supprimer les lignes où toutes les colonnes importantes sont vides/null
-        df_display = df_display.dropna(how='all', subset=['Site', 'PDC', 'type_erreur', 'detection'])
-
-        df_display = df_display.rename(columns={
-            "type_erreur": "Type",
-            "detection": "Détection",
-            "occurrences_12h": "Occurrences 12h",
-            "moment": "Moment",
-            "evi_code": "EVI",
-            "downstream_code_pc": "DS Code"
-        })
-
-        display_cols = ["Site", "PDC", "Type", "Détection", "Occurrences 12h", "Moment"]
-        if "EVI" in df_display.columns:
-            display_cols.append("EVI")
-        if "DS Code" in df_display.columns:
-            display_cols.append("DS Code")
-
-        # Ne garder que les colonnes qui existent et ont des données
-        display_cols = [col for col in display_cols if col in df_display.columns]
-
-        st.dataframe(
-            df_display[display_cols],
-            use_container_width=True,
-            hide_index=True,
-            height=400
-        )
 
 except Exception as e:
     st.error(f"Erreur de connexion: {str(e)}")

@@ -46,10 +46,10 @@ try:
         col_filtre1, col_filtre2 = st.columns([2, 2])
 
         with col_filtre1:
-            sites_selectionnes = st.multiselect(
-                "Sélectionner un ou plusieurs sites",
-                options=sites_disponibles,
-                default=sites_disponibles,
+            site_selectionne = st.selectbox(
+                "Sélectionner un site",
+                options=["Tous les sites"] + sites_disponibles,
+                index=0,
                 key="defauts_site_filter"
             )
 
@@ -64,8 +64,8 @@ try:
         # Appliquer les filtres
         df_filtree = df_defauts.copy()
 
-        if sites_selectionnes:
-            df_filtree = df_filtree[df_filtree["site"].isin(sites_selectionnes)]
+        if site_selectionne != "Tous les sites":
+            df_filtree = df_filtree[df_filtree["site"] == site_selectionne]
 
         if statut_selectionne:
             df_filtree = df_filtree[df_filtree["Statut"].isin(statut_selectionne)]
@@ -166,52 +166,22 @@ try:
 
         display_cols = ["Site", "Date début", "Date fin", "Durée (jours)", "Statut", "Défaut", "Equipement"]
 
-        # Options de tri
-        col_tri1, col_tri2 = st.columns([2, 2])
+        # Tri par défaut : décroissant par date début
+        df_display_sorted = df_display.sort_values(
+            by="Date début",
+            ascending=False,
+            key=lambda x: pd.to_datetime(x, format="%Y-%m-%d %H:%M", errors="coerce")
+        )
 
-        with col_tri1:
-            tri_colonne = st.selectbox(
-                "Trier par",
-                options=display_cols,
-                index=1,  # Par défaut, tri par "Date début"
-                key="defauts_tri_colonne"
-            )
-
-        with col_tri2:
-            tri_ordre = st.radio(
-                "Ordre",
-                options=["Décroissant", "Croissant"],
-                index=0,
-                horizontal=True,
-                key="defauts_tri_ordre"
-            )
-
-        # Appliquer le tri
-        ascending = True if tri_ordre == "Croissant" else False
-
-        # Attention: on doit utiliser les colonnes originales pour le tri si ce sont des dates
-        if tri_colonne in ["Date début", "Date fin"]:
-            # Créer une colonne de tri temporaire pour les dates
-            if tri_colonne == "Date début":
-                df_display_sorted = df_display.sort_values(
-                    by="Date début",
-                    ascending=ascending,
-                    key=lambda x: pd.to_datetime(x, format="%Y-%m-%d %H:%M", errors="coerce")
-                )
-            elif tri_colonne == "Date fin":
-                df_display_sorted = df_display.sort_values(
-                    by="Date fin",
-                    ascending=ascending,
-                    key=lambda x: pd.to_datetime(x.replace("En cours", pd.NaT), format="%Y-%m-%d %H:%M", errors="coerce")
-                )
-        else:
-            df_display_sorted = df_display.sort_values(by=tri_colonne, ascending=ascending)
+        # Calculer la hauteur dynamique du tableau (30 pixels par ligne + header)
+        num_rows = len(df_display_sorted)
+        table_height = min(max(num_rows * 35 + 38, 100), 600)  # Min 100px, max 600px
 
         st.dataframe(
             df_display_sorted[display_cols],
             use_container_width=True,
             hide_index=True,
-            height=600
+            height=table_height
         )
 
         # Stats supplémentaires
@@ -224,7 +194,7 @@ try:
             st.markdown("#### Top 5 Equipements")
             top_equipements = df_filtree["eqp"].value_counts().head(5)
             st.dataframe(
-                top_equipements.reset_index().rename(columns={"index": "Equipement", "eqp": "Nombre"}),
+                top_equipements.reset_index().rename(columns={"eqp": "Equipement", "count": "Nombre"}),
                 use_container_width=True,
                 hide_index=True
             )
@@ -233,7 +203,7 @@ try:
             st.markdown("#### Top 5 Défauts")
             top_defauts = df_filtree["defaut"].value_counts().head(5)
             st.dataframe(
-                top_defauts.reset_index().rename(columns={"index": "Défaut", "defaut": "Nombre"}),
+                top_defauts.reset_index().rename(columns={"defaut": "Défauts", "count": "Nombre"}),
                 use_container_width=True,
                 hide_index=True
             )
