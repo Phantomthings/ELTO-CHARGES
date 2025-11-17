@@ -22,6 +22,7 @@ from tabs import (
     tab9_erreur_specifique,
     tab10_alertes,
     tab11_evolution,
+    tab12_defauts_historique,
 )
 import dashboard_home
 
@@ -646,7 +647,7 @@ st.markdown("---")
 st.markdown("## Analyses Détaillées")
 
 # TABS
-tab0, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.tabs([
+tab0, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11, tab12 = st.tabs([
     "📊 Vue d'ensemble",
     "📋 Générale",
     "🏢 Comparaison par site (Activité)",
@@ -659,6 +660,7 @@ tab0, tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10, tab11 = st.ta
     "🔍 Analyse Erreur Spécifique",
     "⚠️ Alertes",
     "📈 Evolution",
+    "📋 Historique Défauts",
 ])
 
 stats_all = tables.get("stats_global_all", pd.DataFrame())
@@ -692,3 +694,5 @@ with tab10:
     tab10_alertes.render()
 with tab11:
     tab11_evolution.render()
+with tab12:
+    tab12_defauts_historique.render()
