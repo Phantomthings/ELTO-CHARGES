@@ -112,24 +112,31 @@ try:
         # Afficher des cards détaillées pour chaque défaut
         now = pd.Timestamp.now()
 
-        # Limiter à 10 défauts pour ne pas surcharger l'affichage
-        df_defauts_display = df_defauts_actifs.head(10).copy()
-        df_defauts_display["Depuis (jours)"] = (now - df_defauts_display["date_debut"]).dt.days
+        # Calculer le nombre de jours depuis le début
+        df_defauts_actifs["Depuis (jours)"] = (now - df_defauts_actifs["date_debut"]).dt.days
 
-        # Afficher les cards en colonnes (3 par ligne)
-        num_cols = 3
-        for i in range(0, len(df_defauts_display), num_cols):
-            cols = st.columns(num_cols)
-            for j, col in enumerate(cols):
-                idx = i + j
-                if idx < len(df_defauts_display):
-                    row = df_defauts_display.iloc[idx]
-                    with col:
-                        defaut_color = "#dc3545" if row["Depuis (jours)"] > 7 else "#ffc107"
-                        st.markdown(f'''
+        # Grouper par site
+        sites_groupes = df_defauts_actifs.groupby("site")
+
+        # Pour chaque site, créer un expander
+        for site_name, df_site in sites_groupes:
+            nb_defauts_site = len(df_site)
+
+            # Créer l'expander avec le nom du site et le nombre de défauts
+            with st.expander(f"🏢 {site_name} ({nb_defauts_site} défaut{'s' if nb_defauts_site > 1 else ''})", expanded=True):
+                # Afficher les cards en colonnes (3 par ligne)
+                num_cols = 3
+                for i in range(0, len(df_site), num_cols):
+                    cols = st.columns(num_cols)
+                    for j, col in enumerate(cols):
+                        idx = i + j
+                        if idx < len(df_site):
+                            row = df_site.iloc[idx]
+                            with col:
+                                defaut_color = "#dc3545" if row["Depuis (jours)"] > 7 else "#ffc107"
+                                st.markdown(f'''
 <div style='padding: 15px; background: {defaut_color}; border-radius: 10px; margin-bottom: 10px;'>
-    <p style='color: white; margin: 0; font-weight: bold; font-size: 1.1em;'>🏢 {row["site"]}</p>
-    <p style='color: white; margin: 5px 0; font-size: 0.9em;'>⚠️ {row["defaut"]}</p>
+    <p style='color: white; margin: 0; font-weight: bold; font-size: 1.1em;'>⚠️ {row["defaut"]}</p>
     <p style='color: white; margin: 5px 0; font-size: 0.9em;'>🔧 {row["eqp"]}</p>
     <p style='color: white; margin: 5px 0 0 0; font-size: 0.8em; font-style: italic;'>Depuis {row["Depuis (jours)"]} jours</p>
 </div>
